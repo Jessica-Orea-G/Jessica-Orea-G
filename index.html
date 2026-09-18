@@ -1,4 +1,4 @@
-
+`
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -49,8 +49,11 @@
 
 <body>
 
+  <!-- Pantalla inicial -->
   <div id="start">
+
     <h1>✨ Experiencia AR</h1>
+
     <p>Permite el acceso a tu cámara</p>
 
     <button id="startButton">
@@ -60,9 +63,11 @@
     <p id="loading">
       Cargando experiencia...
     </p>
+
   </div>
 
 
+  <!-- ESCENA AR -->
   <a-scene
     mindar-image="
       imageTargetSrc: ./targets.mind;
@@ -76,16 +81,17 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
+    <!-- Cámara -->
     <a-camera
       position="0 0 0"
       look-controls="enabled: false">
     </a-camera>
 
 
-    <!-- IMAGEN OBJETIVO -->
+    <!-- TARGET -->
     <a-entity mindar-image-target="targetIndex: 0">
 
-      <!-- TU GLB -->
+      <!-- TU MODELO -->
       <a-entity
         id="modelo"
         gltf-model="./model2.glb"
@@ -106,25 +112,50 @@
 
   <script>
 
-    const startButton = document.getElementById("startButton");
-    const startScreen = document.getElementById("start");
-    const loading = document.getElementById("loading");
+    const startButton =
+      document.getElementById("startButton");
 
-    const musica = document.getElementById("musica");
-    const modelo = document.getElementById("modelo");
+    const startScreen =
+      document.getElementById("start");
 
-    const scene = document.querySelector("a-scene");
+    const loading =
+      document.getElementById("loading");
 
-    let memeActivo = false;
+    const musica =
+      document.getElementById("musica");
+
+    const modelo =
+      document.getElementById("modelo");
+
+    const scene =
+      document.querySelector("a-scene");
 
 
-    // ==========================
+    // =================================
+    // VARIABLES DEL GIRO
+    // =================================
+
+    let girando = false;
+
+    let angulo = 0;
+
+    let ultimoTiempo = 0;
+
+    let tiempoQuieto = 0;
+
+    let velocidadGiro = 0;
+
+    let direccion = 1;
+
+
+    // =================================
     // INICIAR CÁMARA
-    // ==========================
+    // =================================
 
     startButton.addEventListener("click", async () => {
 
       loading.style.display = "block";
+
       startButton.style.display = "none";
 
       try {
@@ -148,20 +179,18 @@
     });
 
 
-    // ==========================
-    // CUANDO DETECTA LA IMAGEN
-    // ==========================
+    // =================================
+    // IMAGEN DETECTADA
+    // =================================
 
     scene.addEventListener("targetFound", () => {
 
       console.log("🎯 Imagen detectada");
 
-      memeActivo = true;
-
       modelo.setAttribute("visible", true);
 
 
-      // Aparición del modelo
+      // Aparece desde pequeño
       modelo.setAttribute(
         "animation__entrada",
         {
@@ -174,28 +203,19 @@
       );
 
 
-      // ==========================
-      // GIRO HORIZONTAL TIPO MEME
-      // ==========================
+      // Reiniciar giro
+      girando = true;
 
-      modelo.setAttribute(
-        "animation__meme",
-        {
-          property: "rotation",
-          from: "0 0 0",
-          to: "0 360 0",
-          dur: 350,
-          delay: 2000,
-          loop: true,
-          easing: "easeInOutQuad"
-        }
-      );
+      angulo = 0;
+
+      tiempoQuieto = 0;
+
+      velocidadGiro = 0;
+
+      direccion = 1;
 
 
-      // ==========================
-      // MÚSICA
-      // ==========================
-
+      // Música
       musica.volume = 0.5;
 
       musica.currentTime = 0;
@@ -212,30 +232,110 @@
     });
 
 
-    // ==========================
-    // CUANDO SE PIERDE LA IMAGEN
-    // ==========================
+    // =================================
+    // IMAGEN PERDIDA
+    // =================================
 
     scene.addEventListener("targetLost", () => {
 
       console.log("❌ Imagen perdida");
 
-      memeActivo = false;
+      girando = false;
 
-      modelo.setAttribute("visible", false);
+      modelo.setAttribute(
+        "visible",
+        false
+      );
 
-      // Detener animación
-      modelo.removeAttribute("animation__meme");
-
-      // Regresar a posición original
       modelo.setAttribute(
         "rotation",
         "0 0 0"
       );
 
-      // Detener música
+      angulo = 0;
+
       musica.pause();
+
       musica.currentTime = 0;
+
+    });
+
+
+    // =================================
+    // ANIMACIÓN DEL GIRO
+    // =================================
+
+    modelo.addEventListener("loaded", () => {
+
+      console.log("✅ model2.glb cargado");
+
+    });
+
+
+    // Cada frame
+    scene.addEventListener("tick", (tiempo) => {
+
+      if (!girando) {
+        return;
+      }
+
+
+      // Primer frame
+      if (!ultimoTiempo) {
+        ultimoTiempo = tiempo;
+        return;
+      }
+
+
+      const delta =
+        (tiempo - ultimoTiempo) / 1000;
+
+      ultimoTiempo = tiempo;
+
+
+      // =================================
+      // QUIETO
+      // =================================
+
+      if (tiempoQuieto > 0) {
+
+        tiempoQuieto -= delta;
+
+        return;
+
+      }
+
+
+      // =================================
+      // GIRO RÁPIDO
+      // =================================
+
+      velocidadGiro = 1200;
+
+      angulo +=
+        velocidadGiro * delta * direccion;
+
+
+      // Aplicamos el giro en Y
+      modelo.object3D.rotation.y =
+        THREE.MathUtils.degToRad(angulo);
+
+
+      // =================================
+      // TERMINÓ UNA VUELTA
+      // =================================
+
+      if (Math.abs(angulo) >= 360) {
+
+        angulo = 0;
+
+        // Se queda quieto 2 segundos
+        tiempoQuieto = 2;
+
+        // Cambiar dirección
+        direccion *= -1;
+
+      }
 
     });
 
