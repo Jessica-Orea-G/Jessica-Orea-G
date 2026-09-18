@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -48,7 +49,6 @@
 
 <body>
 
-  <!-- Pantalla inicial -->
   <div id="start">
     <h1>✨ Experiencia AR</h1>
     <p>Permite el acceso a tu cámara</p>
@@ -63,7 +63,6 @@
   </div>
 
 
-  <!-- ESCENA AR -->
   <a-scene
     mindar-image="
       imageTargetSrc: ./targets.mind;
@@ -77,7 +76,6 @@
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <!-- Cámara -->
     <a-camera
       position="0 0 0"
       look-controls="enabled: false">
@@ -87,11 +85,12 @@
     <!-- IMAGEN OBJETIVO -->
     <a-entity mindar-image-target="targetIndex: 0">
 
-      <!-- TU MODELO 3D -->
+      <!-- TU GLB -->
       <a-entity
         id="modelo"
         gltf-model="./model2.glb"
         position="0 0 0"
+        rotation="0 0 0"
         scale="0 0 0"
         visible="false">
       </a-entity>
@@ -101,7 +100,7 @@
   </a-scene>
 
 
-  <!-- Música -->
+  <!-- MÚSICA -->
   <audio id="musica" src="./musica.mp3" loop></audio>
 
 
@@ -115,6 +114,8 @@
     const modelo = document.getElementById("modelo");
 
     const scene = document.querySelector("a-scene");
+
+    let memeActivo = false;
 
 
     // ==========================
@@ -148,68 +149,47 @@
 
 
     // ==========================
-    // IMAGEN DETECTADA
+    // CUANDO DETECTA LA IMAGEN
     // ==========================
 
     scene.addEventListener("targetFound", () => {
 
       console.log("🎯 Imagen detectada");
 
+      memeActivo = true;
+
       modelo.setAttribute("visible", true);
 
 
-      // Animación de aparición
+      // Aparición del modelo
       modelo.setAttribute(
         "animation__entrada",
         {
           property: "scale",
           from: "0 0 0",
           to: "0.5 0.5 0.5",
-          dur: 1000,
+          dur: 800,
           easing: "easeOutElastic"
         }
       );
 
 
       // ==========================
-      // REPRODUCIR "ACTION" DEL GLB
+      // GIRO HORIZONTAL TIPO MEME
       // ==========================
 
-      const gltf = modelo.getObject3D("mesh");
-
-      if (gltf && gltf.animations.length > 0) {
-
-        const mixer = new THREE.AnimationMixer(gltf);
-
-        const actionAnimation =
-          gltf.animations.find(
-            animation => animation.name === "Take 001"
-          );
-
-        if (actionAnimation) {
-
-          const action =
-            mixer.clipAction(actionAnimation);
-
-          action.reset();
-          action.play();
-
-          // Actualizar la animación
-          modelo.addEventListener("tick", () => {
-            mixer.update(0.016);
-          });
-
-          console.log("▶️ Reproduciendo animación: Action");
-
-        } else {
-
-          console.log(
-            "No se encontró una animación llamada Action"
-          );
-
+      modelo.setAttribute(
+        "animation__meme",
+        {
+          property: "rotation",
+          from: "0 0 0",
+          to: "0 360 0",
+          dur: 350,
+          delay: 2000,
+          loop: true,
+          easing: "easeInOutQuad"
         }
-
-      }
+      );
 
 
       // ==========================
@@ -217,6 +197,8 @@
       // ==========================
 
       musica.volume = 0.5;
+
+      musica.currentTime = 0;
 
       musica.play().catch(error => {
 
@@ -231,15 +213,27 @@
 
 
     // ==========================
-    // IMAGEN PERDIDA
+    // CUANDO SE PIERDE LA IMAGEN
     // ==========================
 
     scene.addEventListener("targetLost", () => {
 
       console.log("❌ Imagen perdida");
 
+      memeActivo = false;
+
       modelo.setAttribute("visible", false);
 
+      // Detener animación
+      modelo.removeAttribute("animation__meme");
+
+      // Regresar a posición original
+      modelo.setAttribute(
+        "rotation",
+        "0 0 0"
+      );
+
+      // Detener música
       musica.pause();
       musica.currentTime = 0;
 
@@ -249,4 +243,3 @@
 
 </body>
 </html>
-
