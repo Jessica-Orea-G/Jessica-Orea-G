@@ -1,0 +1,224 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Mi experiencia AR</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- MindAR -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #start {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #111;
+      color: white;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    #start button {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    #loading {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Pantalla inicial -->
+  <div id="start">
+    <h1>✨ Experiencia AR</h1>
+    <p>Permite el acceso a tu cámara</p>
+
+    <button id="startButton">
+      Iniciar cámara 📷
+    </button>
+
+    <p id="loading">
+      Cargando experiencia...
+    </p>
+  </div>
+
+
+  <!-- ESCENA AR -->
+  <a-scene
+    mindar-image="
+      imageTargetSrc: ./targets.mind;
+      autoStart: false;
+      uiLoading: no;
+      uiScanning: no;
+      uiError: no;
+    "
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <!-- Cámara -->
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
+
+
+    <!-- Objetivo -->
+    <a-entity mindar-image-target="targetIndex: 0">
+
+      <!-- Modelo 3D -->
+      <a-entity
+        id="modelo"
+        gltf-model="./model.glb"
+        position="0 0 0"
+        rotation="0 0 0"
+        scale="0.5 0.5 0.5"
+        visible="false">
+
+        <!-- Animación de entrada -->
+        <a-animation
+          attribute="scale"
+          from="0 0 0"
+          to="0.5 0.5 0.5"
+          dur="1000"
+          easing="easeOutElastic">
+        </a-animation>
+
+      </a-entity>
+
+      <!-- Partículas / efecto visual -->
+      <a-entity
+        id="efecto"
+        geometry="primitive: sphere; radius: 0.05"
+        material="color: #ffffff; emissive: #ffffff"
+        position="0 0 0"
+        visible="false"
+        animation="
+          property: scale;
+          from: 0.5 0.5 0.5;
+          to: 3 3 3;
+          dur: 1500;
+          easing: easeOutQuad;
+          loop: true;
+          dir: alternate;
+        ">
+      </a-entity>
+
+    </a-entity>
+
+  </a-scene>
+
+
+  <!-- Música -->
+  <audio id="musica" src="./musica.mp3" loop></audio>
+
+
+  <script>
+
+    const startButton = document.getElementById("startButton");
+    const startScreen = document.getElementById("start");
+    const loading = document.getElementById("loading");
+
+    const musica = document.getElementById("musica");
+    const modelo = document.getElementById("modelo");
+    const efecto = document.getElementById("efecto");
+
+    const scene = document.querySelector("a-scene");
+
+    let experienciaActiva = false;
+
+
+    // INICIAR EXPERIENCIA
+    startButton.addEventListener("click", async () => {
+
+      loading.style.display = "block";
+      startButton.style.display = "none";
+
+      try {
+
+        // Iniciar MindAR
+        const mindarSystem = scene.systems["mindar-image-system"];
+
+        await mindarSystem.start();
+
+        startScreen.style.display = "none";
+
+      } catch (error) {
+
+        console.error(error);
+
+        loading.innerHTML =
+          "No se pudo iniciar la cámara 😢";
+
+      }
+
+    });
+
+
+    // CUANDO DETECTA LA IMAGEN
+    scene.addEventListener("targetFound", () => {
+
+      console.log("🎯 Imagen detectada");
+
+      experienciaActiva = true;
+
+      modelo.setAttribute("visible", true);
+      efecto.setAttribute("visible", true);
+
+      // Reiniciar animación
+      modelo.setAttribute(
+        "animation",
+        "property: rotation; from: 0 0 0; to: 0 360 0; dur: 4000; loop: true"
+      );
+
+      // Música
+      musica.volume = 0.5;
+
+      musica.play().catch(error => {
+        console.log("El navegador bloqueó el audio:", error);
+      });
+
+    });
+
+
+    // CUANDO DEJA DE DETECTARLA
+    scene.addEventListener("targetLost", () => {
+
+      console.log("❌ Imagen perdida");
+
+      experienciaActiva = false;
+
+      modelo.setAttribute("visible", false);
+      efecto.setAttribute("visible", false);
+
+      musica.pause();
+
+    });
+
+  </script>
+
+</body>
+</html>
+```
